@@ -59,4 +59,5 @@ void loop() {
   }
 
   lastButtonState = reading;
+  Serial.println("Sent data to client");
 }
