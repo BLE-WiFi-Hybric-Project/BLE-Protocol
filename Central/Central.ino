@@ -14,12 +14,11 @@ bool isConnected = false;
 void notifyCallback(BLERemoteCharacteristic* pCharacteristic, uint8_t* pData, size_t length, bool isNotify) {
   if(isNotify) {
     if(pData[0] == '1') {
-      // Button pressed, control your function here
       digitalWrite(2, HIGH);
     } else if (pData[0] == '0') {
-      // Button released, control your function here
       digitalWrite(2, LOW);
     }
+    Serial.println("Received data from server"); 
   }
 }
 
