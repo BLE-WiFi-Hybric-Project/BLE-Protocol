@@ -1,73 +1,64 @@
 #include <BLEDevice.h>
 #include <BLEUtils.h>
 #include <BLEScan.h>
+#include <BLEAdvertisedDevice.h>
 
-BLEUUID serviceUUID("2185cd30-5935-11ee-8c99-0242ac120002");
 BLEClient* pClient;
+bool ledState = false;
 
-const int ledPin = 13;  // Define the pin for the LED
+class MyClientCallbacks : public BLEClientCallbacks {
+    void onConnect(BLEClient* pClient) {
+      // When connected to the server
+    }
+
+    void onDisconnect(BLEClient* pClient) {
+      // When disconnected from the server
+    }
+};
 
 void setup() {
-  pinMode(ledPin, OUTPUT);
-
   Serial.begin(115200);
-  BLEDevice::init("ESP32_Central");
-  pClient  = BLEDevice::createClient();
+  pinMode(LED_BUILTIN, OUTPUT);
+  BLEDevice::init("LEDClient");
+  pClient = BLEDevice::createClient();
+  pClient->setClientCallbacks(new MyClientCallbacks());
 }
 
-void connectToServer() {
-  BLEScan* pBLEScan = BLEDevice::getScan();
-  pBLEScan->setActiveScan(true);
-  BLEScanResults scanResults = pBLEScan->start(5);
-  int count = scanResults.getCount();
-  for(int i = 0; i < count; i++) {
-    BLEAdvertisedDevice device = scanResults.getDevice(i);
-    if (device.haveServiceUUID() && device.isAdvertisingService(serviceUUID)) {
-      pClient->connect(&device);
-      return;
-    }
+void connectToServer(BLEAddress pAddress) {
+  pClient->connect(pAddress);
+  delay(1000); // Delay to establish connection
+  
+  BLERemoteService* pRemoteService = nullptr;
+  BLEUUID serviceUUID("4fafc201-1fb5-459e-8fcc-c5c9c331914b");
+
+  // Perform service discovery
+  pRemoteService = pClient->getService(serviceUUID);
+
+  if (pRemoteService != nullptr) {
+    BLERemoteCharacteristic* pRemoteCharacteristic = pRemoteService->getCharacteristic(BLEUUID("beb5483e-36e1-4688-b7f5-ea07361b26a8"));
+    pRemoteCharacteristic->registerForNotify(onNotification);
   }
 }
 
-void onConnect(BLEClient* pclient) {
-  Serial.println("Connected");
+void onNotification(BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify) {
+  Serial.print("Notify callback, data: ");
+  Serial.println(*pData);
 
-  BLERemoteService* pRemoteService = pclient->getService(serviceUUID);
-
-  if (pRemoteService == nullptr) {
-    Serial.print("Failed to find service with UUID: ");
-    Serial.println(serviceUUID.toString().c_str());
-    return;
+  if (*pData == '1') {
+    ledState = !ledState;
+    digitalWrite(LED_BUILTIN, ledState);
   }
-
-  BLERemoteCharacteristic* pRemoteCharacteristic = pRemoteService->getCharacteristic(BLEUUID("2185cd30-5935-11ee-8c99-0242ac120002"));
-
-  if (pRemoteCharacteristic == nullptr) {
-    Serial.print("Failed to find characteristic with UUID: ");
-    Serial.println("2185cd30-5935-11ee-8c99-0242ac120002");
-    return;
-  }
-
-  pRemoteCharacteristic->registerForNotify([](BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify) {
-    Serial.print("Notify callback called for characteristic: ");
-    Serial.println(pBLERemoteCharacteristic->getUUID().toString().c_str());
-
-    bool receivedState = pData[0];
-
-    if (receivedState) {
-      Serial.println("Received ON signal");
-      digitalWrite(ledPin, HIGH);
-    } else {
-      Serial.println("Received OFF signal");
-      digitalWrite(ledPin, LOW);
-    }
-  });
 }
 
 void loop() {
-  if (!pClient->isConnected()) {
-    connectToServer();
+  BLEScan* pBLEScan = BLEDevice::getScan();
+  pBLEScan->setActiveScan(true);
+  BLEScanResults foundDevices = pBLEScan->start(5);
+  for (int i = 0; i < foundDevices.getCount(); i++) {
+    BLEAdvertisedDevice device = foundDevices.getDevice(i);
+    if (device.haveServiceUUID() && device.isAdvertisingService(BLEUUID("4fafc201-1fb5-459e-8fcc-c5c9c331914b"))) {
+      connectToServer(device.getAddress());
+    }
   }
-
-  delay(1000);
+  delay(1000); // Delay between scans
 }
