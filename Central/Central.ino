@@ -37,6 +37,10 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
   }
 };
 
+void scanForDevices() {
+  pBLEScan->start(10); // Scan for 10 seconds, adjust as needed
+}
+
 void setup() {
   Serial.begin(115200);
   
@@ -44,7 +48,6 @@ void setup() {
   pBLEScan = BLEDevice::getScan();
   pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
   pBLEScan->setActiveScan(true);
-  pBLEScan->start(10); // Scan for 10 seconds, adjust as needed
 
   Serial.println("Done Setup");
 }
@@ -52,6 +55,7 @@ void setup() {
 void loop() {
   if(isConnected) {
     // You can do other tasks here
+    scanForDevices();
     Serial.println("Connecting...");
   }
   delay(1000);
