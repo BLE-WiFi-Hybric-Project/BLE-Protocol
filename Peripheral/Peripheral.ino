@@ -11,6 +11,9 @@ BLECharacteristic* pCharacteristic = NULL;
 
 int buttonPin = 2; // Define the pin where the button is connected
 bool buttonState = false;
+bool lastButtonState = false;
+unsigned long lastDebounceTime = 0;
+unsigned long debounceDelay = 50;
 
 void setup() {
   Serial.begin(115200);
@@ -36,13 +39,24 @@ void setup() {
 }
 
 void loop() {
-  buttonState = digitalRead(buttonPin);
-  
-  if(buttonState) {
-    pCharacteristic->setValue("1"); // Button pressed
-  } else {
-    pCharacteristic->setValue("0"); // Button released
+  int reading = digitalRead(buttonPin);
+
+  if (reading != lastButtonState) {
+    lastDebounceTime = millis();
   }
-  pCharacteristic->notify();
-  delay(1000); // Adjust as needed
+
+  if ((millis() - lastDebounceTime) > debounceDelay) {
+    if (reading != buttonState) {
+      buttonState = reading;
+
+      if (buttonState) {
+        pCharacteristic->setValue("1");
+      } else {
+        pCharacteristic->setValue("0");
+      }
+      pCharacteristic->notify();
+    }
+  }
+
+  lastButtonState = reading;
 }
