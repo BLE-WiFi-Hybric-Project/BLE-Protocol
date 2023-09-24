@@ -9,9 +9,12 @@
 BLEServer* pServer = NULL;
 BLECharacteristic* pCharacteristic = NULL;
 
+int buttonPin = 2; // Define the pin where the button is connected
 bool buttonState = false;
 
 void setup() {
+  Serial.begin(115200);
+ 
   BLEDevice::init("ESP32 Server");
   pServer = BLEDevice::createServer();
   BLEService *pService = pServer->createService(SERVICE_UUID);
@@ -27,9 +30,14 @@ void setup() {
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(SERVICE_UUID);
   pAdvertising->start();
+
+  pinMode(buttonPin, INPUT);
+  Serial.println("Done Setup");
 }
 
 void loop() {
+  buttonState = digitalRead(buttonPin);
+  
   if(buttonState) {
     pCharacteristic->setValue("1"); // Button pressed
   } else {
