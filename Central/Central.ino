@@ -25,6 +25,7 @@ void notifyCallback(BLERemoteCharacteristic* pCharacteristic, uint8_t* pData, si
 
 class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
   void onResult(BLEAdvertisedDevice advertisedDevice) {
+    Serial.println("Found a device");
     if (advertisedDevice.haveServiceUUID() && advertisedDevice.getServiceUUID().equals(SERVICE_UUID)) {
       pClient = BLEDevice::createClient();
       pClient->connect(&advertisedDevice);
@@ -37,11 +38,15 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
 };
 
 void setup() {
+  Serial.begin(115200);
+  
   BLEDevice::init("ESP32 Client");
   pBLEScan = BLEDevice::getScan();
   pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
   pBLEScan->setActiveScan(true);
   pBLEScan->start(10); // Scan for 10 seconds, adjust as needed
+
+  Serial.println("Done Setup");
 }
 
 void loop() {
