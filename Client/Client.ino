@@ -110,10 +110,11 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
       myDevice = new BLEAdvertisedDevice(advertisedDevice);
       doConnect = true;
       doScan = true;
-  
+      
+      Serial.println("Service found");
     } // Found our server
     else 
-      Serial.println("Not service we are looking for");
+      Serial.println("Service not found");
   } // onResult
 }; // MyAdvertisedDeviceCallbacks
 
@@ -153,7 +154,7 @@ void loop() {
   // with the current time since boot.
   if (connected) {
     // Do something when connected
-    Serial.println("You are connected");
+    Serial.println(" --------------------- ");
     
   }else if(doScan){
     BLEDevice::getScan()->start(0);  // this is just example to start scan after disconnect, most likely there is better way to do it in arduino
