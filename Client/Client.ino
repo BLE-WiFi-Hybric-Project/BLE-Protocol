@@ -1,5 +1,4 @@
 #include "BLEDevice.h"
-//#include "BLEScan.h"
 
 // Define UUIDs:
 static BLEUUID serviceUUID("4fafc201-1fb5-459e-8fcc-c5c9c331914b");
@@ -9,11 +8,11 @@ static BLEUUID    charUUID("beb5483e-36e1-4688-b7f5-ea07361b26a8");
 static boolean doConnect = false;
 static boolean connected = false;
 static boolean doScan = false;
+bool ackSignal = false;
 
 // Define pointer for the BLE connection
 static BLEAdvertisedDevice* myDevice;
 BLERemoteCharacteristic* pRemoteChar;
-BLERemoteCharacteristic* pRemoteChar_2;
 
 // Callback function for Notify function
 static void notifyCallback(BLERemoteCharacteristic* pBLERemoteCharacteristic,
@@ -29,6 +28,8 @@ static void notifyCallback(BLERemoteCharacteristic* pBLERemoteCharacteristic,
     // print to Serial
     Serial.print("Characteristic (Notify) from server: ");
     Serial.println(counter ); 
+
+    ackSignal = true;
   }
 }
 
@@ -122,10 +123,6 @@ void setup() {
   Serial.begin(115200);
   Serial.println("Starting Arduino BLE Client application...");
   BLEDevice::init("BLE client");
-
-  // Retrieve a Scanner and set the callback we want to use to be informed when we
-  // have detected a new device.  Specify that we want active scanning and start the
-  // scan to run for 5 seconds.
   BLEScan* pBLEScan = BLEDevice::getScan();
   pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
   pBLEScan->setInterval(1349);
@@ -137,10 +134,6 @@ void setup() {
 } // End of setup.
 
 void loop() {
-
-  // If the flag "doConnect" is true then we have scanned for and found the desired
-  // BLE Server with which we wish to connect.  Now we connect to it.  Once we are 
-  // connected we set the connected flag to be true.
   if (doConnect == true) {
     if (connectToServer()) {
       Serial.println("We are now connected to the BLE Server.");
@@ -149,9 +142,6 @@ void loop() {
     }
     doConnect = false;
   }
-
-  // If we are connected to a peer BLE Server, update the characteristic each time we are reached
-  // with the current time since boot.
   if (connected) {
     // Do something when connected
     Serial.println(" --------------------- ");
@@ -159,8 +149,5 @@ void loop() {
   }else if(doScan){
     BLEDevice::getScan()->start(0);  // this is just example to start scan after disconnect, most likely there is better way to do it in arduino
   }
-
-  // In this example "delay" is used to delay with one second. This is of course a very basic 
-  // implementation to keep things simple. I recommend to use millis() for any production code
   delay(1000);
 }
