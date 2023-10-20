@@ -10,6 +10,7 @@ BLE2902 *pBLE2902;
 
 bool deviceConnected = false;
 bool oldDeviceConnected = false;
+bool ackSignal = true;
 uint32_t value = 0;
 
 #define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
@@ -70,13 +71,26 @@ void setup() {
 
 void loop() {
     // notify changed value
-    if (deviceConnected) {
+    if (deviceConnected && ackSignal) {
+        Serial.println(value);
         pCharacteristic->setValue(value);
         pCharacteristic->notify();
-        value++;   
         
-        Serial.println(value);     
-        delay(1000);
+        // Wait for acknowledgment
+        unsigned long startMillis = millis();
+        while (millis() - startMillis < 1000) {
+            if (!deviceConnected) {
+                break; // Exit loop if disconnected
+            }
+
+            if (ackSignal) {
+                delay(10); // Wait for acknowledgment signal
+            } else {
+                value++; // Move to the next value if ACK received
+                ackSignal = true; // Reset acknowledgment signal
+                break;
+            }
+        }
     }
     // disconnecting
     if (!deviceConnected && oldDeviceConnected) {
