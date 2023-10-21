@@ -128,8 +128,8 @@ void loop() {
   }
   if (connected && ackSignal) {
     Serial.println(value);
-    pCharacteristic->setValue(value);
-    pCharacteristic->notify();
+    pRemoteChar->setValue(value);
+    pRemoteChar->notify();
         
     // Wait for acknowledgment
     unsigned long startMillis = millis();
