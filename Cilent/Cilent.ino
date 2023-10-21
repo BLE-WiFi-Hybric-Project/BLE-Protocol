@@ -8,30 +8,14 @@ static BLEUUID    charUUID("beb5483e-36e1-4688-b7f5-ea07361b26a8");
 static boolean doConnect = false;
 static boolean connected = false;
 static boolean doScan = false;
-bool ackSignal = false;
+bool ackSignal = true;
 
 // Define pointer for the BLE connection
 static BLEAdvertisedDevice* myDevice;
 BLERemoteCharacteristic* pRemoteChar;
 
-// Callback function for Notify function
-static void notifyCallback(BLERemoteCharacteristic* pBLERemoteCharacteristic,
-                            uint8_t* pData,
-                            size_t length,
-                            bool isNotify) {
-  if(pBLERemoteCharacteristic->getUUID().toString() == charUUID.toString()) {
-    uint32_t counter = pData[0];
-    for(int i = 1; i < length; i++) {
-      counter = counter | (pData[i] << i*8);
-    }
-
-    // print to Serial
-    Serial.print("Characteristic (Notify) from server: ");
-    Serial.println(counter ); 
-
-    ackSignal = true;
-  }
-}
+// Variable that will continuously be increased and written to the client
+uint32_t value = 0;
 
 // Callback function that is called whenever a client is connected or disconnected
 class MyClientCallback : public BLEClientCallbacks {
@@ -142,11 +126,28 @@ void loop() {
     }
     doConnect = false;
   }
-  if (connected) {
-    // Do something when connected
-    Serial.println(" --------------------- ");
-    
-  }else if(doScan){
+  if (connected && ackSignal) {
+    Serial.println(value);
+    pCharacteristic->setValue(value);
+    pCharacteristic->notify();
+        
+    // Wait for acknowledgment
+    unsigned long startMillis = millis();
+    while (millis() - startMillis < 5000) {
+        if (!deviceConnected) {
+              break; // Exit loop if disconnected
+        }
+
+        if (ackSignal) {
+            delay(10); // Wait for acknowledgment signal
+        } else {
+            value++; // Move to the next value if ACK received
+            ackSignal = true; // Reset acknowledgment signal
+            break;
+        }
+     }
+  }
+  else if(doScan){
     BLEDevice::getScan()->start(0);  // this is just example to start scan after disconnect, most likely there is better way to do it in arduino
   }
   delay(1000);
