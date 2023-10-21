@@ -10,8 +10,7 @@ BLE2902 *pBLE2902;
 
 bool deviceConnected = false;
 bool oldDeviceConnected = false;
-bool ackSignal = true;
-uint32_t value = 0;
+bool ackSignal = false;
 
 #define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 #define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
@@ -25,6 +24,25 @@ class MyServerCallbacks: public BLEServerCallbacks {
       deviceConnected = false;
     }
 };
+
+// Callback function for Notify function
+static void notifyCallback(BLERemoteCharacteristic* pBLERemoteCharacteristic,
+                            uint8_t* pData,
+                            size_t length,
+                            bool isNotify) {
+  if(pBLERemoteCharacteristic->getUUID().toString() == charUUID.toString()) {
+    uint32_t counter = pData[0];
+    for(int i = 1; i < length; i++) {
+      counter = counter | (pData[i] << i*8);
+    }
+
+    // print to Serial
+    Serial.print("Characteristic (Notify) from Cilent: ");
+    Serial.println(counter ); 
+
+    ackSignal = true;
+  }
+}
 
 void setup() {
   Serial.begin(115200);
@@ -71,26 +89,8 @@ void setup() {
 
 void loop() {
     // notify changed value
-    if (deviceConnected && ackSignal) {
-        Serial.println(value);
-        pCharacteristic->setValue(value);
-        pCharacteristic->notify();
-        
-        // Wait for acknowledgment
-        unsigned long startMillis = millis();
-        while (millis() - startMillis < 1000) {
-            if (!deviceConnected) {
-                break; // Exit loop if disconnected
-            }
-
-            if (ackSignal) {
-                delay(10); // Wait for acknowledgment signal
-            } else {
-                value++; // Move to the next value if ACK received
-                ackSignal = true; // Reset acknowledgment signal
-                break;
-            }
-        }
+    if (deviceConnected) {
+        Serial.println(" ------------------------ ");
     }
     // disconnecting
     if (!deviceConnected && oldDeviceConnected) {
